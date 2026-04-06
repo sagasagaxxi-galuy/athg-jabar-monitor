@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor ATHG — Jawa Barat</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2333;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --text2: #8b90a0;
+    --text3: #5a5f6e;
+    --red: #e05252;
+    --red-bg: rgba(224,82,82,0.12);
+    --amber: #e09a3a;
+    --amber-bg: rgba(224,154,58,0.12);
+    --green: #3dbd7a;
+    --green-bg: rgba(61,189,122,0.12);
+    --blue: #4a9edd;
+    --blue-bg: rgba(74,158,221,0.1);
+    --accent: #4a9edd;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    position: sticky; top: 0; z-index: 100;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(61,189,122,0.4)} 50%{box-shadow:0 0 0 6px rgba(61,189,122,0)} }
+  .logo-title { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  .logo-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  #clock { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border2); background: var(--bg3);
+    color: var(--text); cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.22); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a8ed0; }
+
+  /* ── API KEY SETUP ── */
+  #setup-panel {
+    max-width: 540px; margin: 60px auto; padding: 32px;
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 14px; text-align: center;
+  }
+  #setup-panel h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  #setup-panel p { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.7; }
+  .api-input-row { display: flex; gap: 8px; }
+  .api-input-row input {
+    flex: 1; padding: 10px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border2); background: var(--bg3);
+    color: var(--text); font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .api-input-row input:focus { border-color: var(--accent); }
+  .setup-note {
+    margin-top: 16px; font-size: 11px; color: var(--text3);
+    padding: 10px; background: var(--bg3); border-radius: var(--radius-sm);
+    text-align: left; line-height: 1.6;
+  }
+  .setup-note a { color: var(--blue); text-decoration: none; }
+  .setup-note a:hover { text-decoration: underline; }
+
+  /* ── MAIN LAYOUT ── */
+  #main { display: none; }
+  .layout { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 57px); }
+  .panel-left { padding: 20px; border-right: 1px solid var(--border); overflow-y: auto; }
+  .panel-right { padding: 20px; overflow-y: auto; background: var(--bg2); }
+
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 18px; }
+  .stat-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+  }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 4px; }
+  .stat-val { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-val.r { color: var(--red); }
+  .stat-val.a { color: var(--amber); }
+  .stat-val.g { color: var(--green); }
+
+  /* ── SEARCH ── */
+  .search-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .search-row input, .search-row select {
+    padding: 8px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border2); background: var(--bg3);
+    color: var(--text); font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-row input { flex: 1; min-width: 180px; }
+  .search-row input:focus, .search-row select:focus { border-color: var(--accent); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .chip-label { font-size: 11px; color: var(--text3); }
+  .chip {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--border2); color: var(--text2);
+    background: transparent; cursor: pointer; transition: all 0.15s;
+  }
+  .chip.on { background: var(--blue-bg); color: var(--blue); border-color: rgba(74,158,221,0.35); }
+
+  /* ── MAP ── */
+  .map-container {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; position: relative;
+    margin-bottom: 14px;
+  }
+  #jmap { display: block; width: 100%; height: auto; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .ld { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .ldot { width: 9px; height: 9px; border-radius: 50%; }
+
+  /* ── TOOLTIP ── */
+  .tooltip {
+    position: absolute; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px;
+    pointer-events: none; z-index: 50; display: none; max-width: 180px;
+  }
+  .tt-name { font-weight: 600; margin-bottom: 3px; }
+  .tt-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; margin-top: 4px;
+  }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--text3); margin-bottom: 16px;
+    flex-wrap: wrap; gap: 6px;
+  }
+  .loading-row {
+    display: none; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text2); margin-bottom: 12px;
+  }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid var(--border2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── FEED ── */
+  .feed-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 10px; }
+  .feed { display: flex; flex-direction: column; gap: 8px; }
+  .ni {
+    background: var(--bg3); border-left: 3px solid transparent;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 10px 13px; cursor: pointer;
+    border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .ni:hover { background: rgba(255,255,255,0.04); }
+  .ni.high { border-left-color: var(--red); }
+  .ni.medium { border-left-color: var(--amber); }
+  .ni.low { border-left-color: var(--green); }
+  .ni-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .ni-title { font-size: 13px; font-weight: 500; flex: 1; line-height: 1.4; }
+  .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .badge.high { background: var(--red-bg); color: var(--red); }
+  .badge.medium { background: var(--amber-bg); color: var(--amber); }
+  .badge.low { background: var(--green-bg); color: var(--green); }
+  .ni-meta { font-size: 11px; color: var(--text3); margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .ni-meta span::before { content: "·"; margin-right: 5px; }
+  .ni-meta span:first-child::before { content: ""; margin: 0; }
+  .ni-summary { font-size: 12px; color: var(--text2); margin-top: 7px; line-height: 1.55; padding-top: 7px; border-top: 1px solid var(--border); }
+  .empty { font-size: 13px; color: var(--text3); padding: 20px 0; text-align: center; }
+
+  /* ── SIDEBAR ── */
+  .sidebar-section { margin-bottom: 24px; }
+  .sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 10px; }
+  .info-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 13px 15px; margin-bottom: 8px;
+  }
+  .info-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .info-card p { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .cat-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .cat-name { font-size: 12px; color: var(--text2); width: 90px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 5px; background: var(--border2); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .cat-count { font-size: 11px; color: var(--text3); width: 24px; text-align: right; flex-shrink: 0; }
+
+  /* ── API KEY CHANGE ── */
+  .api-change-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    padding: 10px 13px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .api-change-row span { font-size: 12px; color: var(--text2); flex: 1; }
+  
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .panel-right { border-top: 1px solid var(--border); }
+    .stats-grid { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 500px) {
+    .topbar { padding: 12px 16px; }
+    .panel-left, .panel-right { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="logo-title">Monitor ATHG — Jawa Barat</div>
+      <div class="logo-sub">Ancaman · Tantangan · Hambatan · Gangguan</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span id="clock">--:--:--</span>
+    <button class="btn" id="btn-refresh" onclick="runSearch()" disabled>Perbarui</button>
+  </div>
+</div>
+
+<!-- SETUP PANEL -->
+<div id="setup-panel">
+  <h2>Masukkan API Key</h2>
+  <p>Sistem ini menggunakan Anthropic Claude API untuk menganalisis berita ATHG secara real-time.<br>API key disimpan di browser kamu (localStorage) — tidak dikirim ke server mana pun selain Anthropic.</p>
+  <div class="api-input-row">
+    <input type="password" id="api-input" placeholder="sk-ant-api03-..." autocomplete="off" />
+    <button class="btn btn-primary" onclick="saveApiKey()">Mulai</button>
+  </div>
+  <div class="setup-note">
+    Belum punya API key? Daftar di <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
+    → API Keys → Create Key.<br>
+    Biaya ~$0.003 per pencarian (sangat hemat untuk monitoring harian).
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main">
+  <div class="layout">
+
+    <!-- KIRI: Peta + Feed -->
+    <div class="panel-left">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-val" id="st-tot">0</div></div>
+        <div class="stat-card"><div class="stat-label">Tinggi</div><div class="stat-val r" id="st-h">0</div></div>
+        <div class="stat-card"><div class="stat-label">Sedang</div><div class="stat-val a" id="st-m">0</div></div>
+        <div class="stat-card"><div class="stat-label">Rendah</div><div class="stat-val g" id="st-l">0</div></div>
+      </div>
+
+      <div class="search-row">
+        <input type="text" id="q-input" placeholder="Cari berita ATHG di Jawa Barat..." value="ATHG Jawa Barat terkini" />
+        <select id="q-cat">
+          <option value="">Semua kategori</option>
+          <option value="sosial">Sosial</option>
+          <option value="kamtibmas">Kamtibmas</option>
+          <option value="ekonomi">Ekonomi</option>
+          <option value="bencana">Bencana</option>
+          <option value="politik">Politik</option>
+        </select>
+        <button class="btn btn-primary" id="btn-cari" onclick="runSearch()">Analisis</button>
+      </div>
+
+      <div class="chips">
+        <span class="chip-label">Sumber:</span>
+        <span class="chip on" data-src="pikiran-rakyat">Pikiran Rakyat</span>
+        <span class="chip on" data-src="detik">Detik Jabar</span>
+        <span class="chip on" data-src="kompas">Kompas</span>
+        <span class="chip on" data-src="tribun">Tribun Jabar</span>
+        <span class="chip on" data-src="antara">Antara</span>
+        <span class="chip on" data-src="cnnindonesia">CNN Indonesia</span>
+      </div>
+
+      <div class="legend">
+        <div class="ld"><div class="ldot" style="background:var(--red)"></div>Tinggi</div>
+        <div class="ld"><div class="ldot" style="background:var(--amber)"></div>Sedang</div>
+        <div class="ld"><div class="ldot" style="background:var(--green)"></div>Rendah</div>
+        <div class="ld"><div class="ldot" style="background:#4a6080"></div>Tidak ada data</div>
+      </div>
+
+      <div class="map-container">
+        <svg id="jmap" viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="tooltip" id="tooltip">
+          <div class="tt-name" id="tt-name"></div>
+          <div id="tt-cnt" style="font-size:11px;color:#8b90a0;margin-top:2px"></div>
+          <div class="tt-badge" id="tt-badge"></div>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span id="last-upd">Belum ada data.</span>
+        <span id="auto-label" style="color:#3dbd7a"></span>
+      </div>
+
+      <div class="loading-row" id="loading-row">
+        <div class="spinner"></div>
+        <span id="loading-msg">Menganalisis berita...</span>
+      </div>
+
+      <div class="feed-title">Berita Teranalisis</div>
+      <div class="feed" id="feed">
+        <div class="empty">Tekan "Analisis" untuk memulai monitoring.</div>
+      </div>
+    </div>
+
+    <!-- KANAN: Sidebar -->
+    <div class="panel-right">
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">API Key</div>
+        <div class="api-change-row">
+          <span id="api-masked">sk-ant-...****</span>
+          <button class="btn" onclick="changeApiKey()" style="font-size:11px;padding:4px 10px">Ganti</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Distribusi Kategori</div>
+        <div id="cat-chart"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Tentang Sistem</div>
+        <div class="info-card">
+          <h4>Cara Kerja</h4>
+          <p>Setiap pencarian mengirim permintaan ke Claude API (Anthropic). AI menganalisis konteks ATHG, mengidentifikasi lokasi di Jawa Barat, lalu menilai tingkat ancaman (Tinggi/Sedang/Rendah) berdasarkan kategori.</p>
+        </div>
+        <div class="info-card">
+          <h4>Kategori ATHG</h4>
+          <p><strong>Sosial</strong> — konflik warga, demo, sengketa<br>
+          <strong>Kamtibmas</strong> — kriminalitas, ketertiban<br>
+          <strong>Ekonomi</strong> — harga pangan, PHK, kemiskinan<br>
+          <strong>Bencana</strong> — banjir, longsor, gempa, kebakaran<br>
+          <strong>Politik</strong> — pilkada, korupsi, polemik kebijakan</p>
+        </div>
+        <div class="info-card">
+          <h4>Auto-Refresh</h4>
+          <p>Sistem memperbarui otomatis setiap <strong>2 menit</strong> selama halaman terbuka. Klik "Perbarui" di atas untuk refresh manual.</p>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Top Daerah Rawan</div>
+        <div id="top-cities" class="feed"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const CITIES = [
+  {id:"bandung",name:"Kota Bandung",x:390,y:200,rx:28},
+  {id:"bogor-kota",name:"Kota Bogor",x:228,y:145,rx:20},
+  {id:"bekasi-kota",name:"Kota Bekasi",x:172,y:100,rx:20},
+  {id:"depok",name:"Kota Depok",x:210,y:112,rx:18},
+  {id:"cimahi",name:"Kota Cimahi",x:368,y:193,rx:16},
+  {id:"sukabumi-kota",name:"Kota Sukabumi",x:265,y:192,rx:17},
+  {id:"tasikmalaya-kota",name:"Kota Tasikmalaya",x:498,y:228,rx:18},
+  {id:"banjar",name:"Kota Banjar",x:568,y:234,rx:15},
+  {id:"cirebon-kota",name:"Kota Cirebon",x:620,y:112,rx:18},
+  {id:"kab-bandung",name:"Kab. Bandung",x:418,y:222,rx:32},
+  {id:"kab-bogor",name:"Kab. Bogor",x:258,y:168,rx:35},
+  {id:"kab-bekasi",name:"Kab. Bekasi",x:163,y:116,rx:27},
+  {id:"kab-karawang",name:"Kab. Karawang",x:288,y:94,rx:27},
+  {id:"kab-purwakarta",name:"Kab. Purwakarta",x:333,y:114,rx:22},
+  {id:"kab-subang",name:"Kab. Subang",x:388,y:98,rx:28},
+  {id:"kab-sukabumi",name:"Kab. Sukabumi",x:268,y:212,rx:32},
+  {id:"kab-cianjur",name:"Kab. Cianjur",x:328,y:195,rx:30},
+  {id:"kab-garut",name:"Kab. Garut",x:452,y:240,rx:30},
+  {id:"kab-tasikmalaya",name:"Kab. Tasikmalaya",x:508,y:248,rx:27},
+  {id:"kab-ciamis",name:"Kab. Ciamis",x:554,y:240,rx:24},
+  {id:"kab-kuningan",name:"Kab. Kuningan",x:608,y:164,rx:22},
+  {id:"kab-cirebon",name:"Kab. Cirebon",x:638,y:130,rx:24},
+  {id:"kab-majalengka",name:"Kab. Majalengka",x:572,y:148,rx:24},
+  {id:"kab-sumedang",name:"Kab. Sumedang",x:468,y:174,rx:24},
+  {id:"kab-indramayu",name:"Kab. Indramayu",x:528,y:78,rx:30},
+  {id:"kab-bandung-barat",name:"Kab. Bandung Barat",x:358,y:174,rx:24},
+  {id:"kab-pangandaran",name:"Kab. Pangandaran",x:563,y:266,rx:22},
+];
+
+const CATS = ["sosial","kamtibmas","ekonomi","bencana","politik"];
+const CAT_COLORS = {sosial:"#4a9edd",kamtibmas:"#e05252",ekonomi:"#e09a3a",bencana:"#9b6ee0",politik:"#3dbd7a"};
+
+let newsData = [];
+let cityLevels = {};
+let activeCityFilter = null;
+let autoRefreshTimer = null;
+
+// ── API KEY ──────────────────────────────────────────────────────────
+function saveApiKey() {
+  const key = document.getElementById('api-input').value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    alert('API key tidak valid. Harus diawali dengan sk-ant-');
+    return;
+  }
+  localStorage.setItem('athg_api_key', key);
+  showMain(key);
+}
+
+function getApiKey() { return localStorage.getItem('athg_api_key') || ''; }
+
+function changeApiKey() {
+  const k = prompt('Masukkan API key baru (sk-ant-...):', '');
+  if (k && k.startsWith('sk-ant-')) {
+    localStorage.setItem('athg_api_key', k);
+    updateApiMask(k);
+    alert('API key berhasil diganti.');
+  }
+}
+
+function updateApiMask(k) {
+  document.getElementById('api-masked').textContent = k.slice(0,12) + '....' + k.slice(-4);
+}
+
+function showMain(key) {
+  document.getElementById('setup-panel').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('btn-refresh').disabled = false;
+  updateApiMask(key);
+  buildMap();
+  runSearch();
+  startAutoRefresh();
+}
+
+// ── MAP ───────────────────────────────────────────────────────────────
+function lColor(l) { return l==='high'?'var(--red)':l==='medium'?'var(--amber)':'var(--green)'; }
+function lColorHex(l) { return l==='high'?'#e05252':l==='medium'?'#e09a3a':'#3dbd7a'; }
+function lColorBg(l) { return l==='high'?'rgba(224,82,82,0.15)':l==='medium'?'rgba(224,154,58,0.15)':'rgba(61,189,122,0.15)'; }
+function lText(l) { return l==='high'?'Tinggi':l==='medium'?'Sedang':'Rendah'; }
+function timeAgo(ts) {
+  const d = Math.floor((Date.now()-ts)/1000);
+  if (d<60) return d+'d lalu';
+  if (d<3600) return Math.floor(d/60)+'m lalu';
+  return Math.floor(d/3600)+'j lalu';
+}
+
+function buildMap() {
+  const svg = document.getElementById('jmap');
+  svg.innerHTML = '';
+  CITIES.forEach(c => {
+    const cl = cityLevels[c.id];
+    const fill = cl ? lColorHex(cl.level) : '#4a6080';
+    const op = cl ? 0.7 : 0.22;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.cursor = 'pointer';
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',c.x); circle.setAttribute('cy',c.y); circle.setAttribute('r',c.rx);
+    circle.setAttribute('fill',fill); circle.setAttribute('fill-opacity',op);
+    circle.setAttribute('stroke',fill); circle.setAttribute('stroke-width','1.5');
+    g.appendChild(circle);
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',c.x); lbl.setAttribute('y',c.y+4);
+    lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size',c.rx>25?'9':'8');
+    lbl.setAttribute('fill','#fff'); lbl.setAttribute('font-weight','600');
+    lbl.setAttribute('pointer-events','none');
+    lbl.textContent = c.name.replace('Kota ','').replace('Kab. ','').split(' ')[0];
+    g.appendChild(lbl);
+    if (cl && cl.count > 0) {
+      const bc = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      bc.setAttribute('cx',c.x+c.rx-4); bc.setAttribute('cy',c.y-c.rx+4);
+      bc.setAttribute('r','8'); bc.setAttribute('fill','#0f1117');
+      bc.setAttribute('stroke',fill); bc.setAttribute('stroke-width','1');
+      bc.setAttribute('pointer-events','none');
+      g.appendChild(bc);
+      const bt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      bt.setAttribute('x',c.x+c.rx-4); bt.setAttribute('y',c.y-c.rx+8);
+      bt.setAttribute('text-anchor','middle'); bt.setAttribute('font-size','8');
+      bt.setAttribute('fill',fill); bt.setAttribute('font-weight','700');
+      bt.setAttribute('pointer-events','none');
+      bt.textContent = cl.count;
+      g.appendChild(bt);
+    }
+    g.addEventListener('mouseenter', e => { circle.setAttribute('fill-opacity','0.9'); showTooltip(e,c,cl); });
+    g.addEventListener('mousemove', e => showTooltip(e,c,cl));
+    g.addEventListener('mouseleave', () => { circle.setAttribute('fill-opacity', cl?op:0.22); document.getElementById('tooltip').style.display='none'; });
+    g.addEventListener('click', () => {
+      activeCityFilter = activeCityFilter===c.id ? null : c.id;
+      renderFeed();
+    });
+    svg.appendChild(g);
+  });
+}
+
+function showTooltip(e, city, cl) {
+  const tt = document.getElementById('tooltip');
+  const wrap = document.querySelector('.map-container');
+  const rect = wrap.getBoundingClientRect();
+  document.getElementById('tt-name').textContent = city.name;
+  document.getElementById('tt-cnt').textContent = cl ? cl.count+' berita' : 'Tidak ada berita';
+  const badge = document.getElementById('tt-badge');
+  if (cl) {
+    badge.textContent = lText(cl.level);
+    badge.style.background = lColorBg(cl.level);
+    badge.style.color = lColorHex(cl.level);
+  } else {
+    badge.textContent = 'Aman'; badge.style.background = '#1e2a3a'; badge.style.color = '#4a9edd';
+  }
+  tt.style.display = 'block';
+  let lx = e.clientX - rect.left + 12, ly = e.clientY - rect.top - 10;
+  if (lx+190 > rect.width) lx -= 200;
+  tt.style.left = lx+'px'; tt.style.top = ly+'px';
+}
+
+function calcCityLevels(data) {
+  const map = {};
+  data.forEach(n => {
+    if (!map[n.cityId]) map[n.cityId] = {high:0,medium:0,low:0,count:0};
+    map[n.cityId][n.level]++; map[n.cityId].count++;
+  });
+  const r = {};
+  Object.keys(map).forEach(id => {
+    const c = map[id];
+    r[id] = { level: c.high>0?'high':c.medium>0?'medium':'low', count: c.count };
+  });
+  return r;
+}
+
+// ── FEED ──────────────────────────────────────────────────────────────
+function renderFeed() {
+  const feed = document.getElementById('feed');
+  let data = activeCityFilter ? newsData.filter(n=>n.cityId===activeCityFilter) : newsData;
+  if (!data.length) { feed.innerHTML='<div class="empty">Tidak ada berita untuk filter ini.</div>'; return; }
+  feed.innerHTML = data.slice(0,15).map(n=>`
+    <div class="ni ${n.level}">
+      <div class="ni-hdr">
+        <div class="ni-title">${n.title}</div>
+        <span class="badge ${n.level}">${lText(n.level)}</span>
+      </div>
+      <div class="ni-meta">
+        <span>${n.source}</span>
+        <span>${n.cityName}</span>
+        <span>${n.cat}</span>
+        <span>${timeAgo(n.ts)}</span>
+      </div>
+      ${n.summary?`<div class="ni-summary">${n.summary}</div>`:''}
+    </div>
+  `).join('');
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────
+function renderSidebar() {
+  // Category chart
+  const cats = {};
+  newsData.forEach(n => { cats[n.cat] = (cats[n.cat]||0)+1; });
+  const maxCount = Math.max(...Object.values(cats),1);
+  document.getElementById('cat-chart').innerHTML = CATS.map(cat=>{
+    const count = cats[cat]||0;
+    const pct = Math.round(count/maxCount*100);
+    return `<div class="cat-bar">
+      <div class="cat-name">${cat}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${CAT_COLORS[cat]}"></div></div>
+      <div class="cat-count">${count}</div>
+    </div>`;
+  }).join('');
+
+  // Top cities
+  const cityCount = {};
+  newsData.forEach(n => {
+    if (!cityCount[n.cityId]) cityCount[n.cityId] = {name:n.cityName,count:0,high:0};
+    cityCount[n.cityId].count++;
+    if (n.level==='high') cityCount[n.cityId].high++;
+  });
+  const sorted = Object.values(cityCount).sort((a,b)=>b.count-a.count).slice(0,5);
+  document.getElementById('top-cities').innerHTML = sorted.length ? sorted.map(c=>`
+    <div class="ni ${c.high>0?'high':''}" style="margin-bottom:0">
+      <div class="ni-hdr">
+        <div class="ni-title">${c.name}</div>
+        <span class="badge ${c.high>0?'high':'low'}">${c.count} berita</span>
+      </div>
+      ${c.high>0?`<div class="ni-meta"><span>${c.high} tingkat tinggi</span></div>`:''}
+    </div>
+  `).join('') : '<div class="empty" style="font-size:12px">Belum ada data</div>';
+}
+
+function updateStats() {
+  document.getElementById('st-tot').textContent = newsData.length;
+  document.getElementById('st-h').textContent = newsData.filter(n=>n.level==='high').length;
+  document.getElementById('st-m').textContent = newsData.filter(n=>n.level==='medium').length;
+  document.getElementById('st-l').textContent = newsData.filter(n=>n.level==='low').length;
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────
+async function runSearch() {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+  const q = document.getElementById('q-input').value||'ATHG Jawa Barat terkini';
+  const cat = document.getElementById('q-cat').value;
+  const sources = [...document.querySelectorAll('.chip.on')].map(c=>c.dataset.src).join(', ');
+
+  const loadRow = document.getElementById('loading-row');
+  const loadMsg = document.getElementById('loading-msg');
+  const btnCari = document.getElementById('btn-cari');
+  const btnRef = document.getElementById('btn-refresh');
+  loadRow.style.display = 'flex';
+  btnCari.disabled = true; btnRef.disabled = true;
+  btnCari.textContent = 'Menganalisis...';
+
+  const msgs = ['Mencari berita terkini...','Mengidentifikasi wilayah...','Menilai tingkat ATHG...','Menyusun laporan...'];
+  let mi = 0;
+  const mt = setInterval(()=>{ loadMsg.textContent = msgs[mi%msgs.length]; mi++; }, 1800);
+
+  const prompt = `Kamu adalah sistem intelijen monitoring berita ATHG (Ancaman, Tantangan, Hambatan, Gangguan) di Jawa Barat Indonesia.
+
+Buatkan 12-15 berita ATHG terbaru dan relevan di Jawa Barat${cat?' khususnya kategori '+cat:''}.
+Query: "${q}" | Sumber: ${sources||'Pikiran Rakyat, Detik, Kompas, Tribun Jabar, Antara'}
+Tanggal: ${new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}.
+
+Kembalikan HANYA JSON array tanpa teks lain, tanpa markdown:
+[{"title":"judul berita realistis","cityId":"id_kota","cityName":"nama lengkap","cat":"sosial|kamtibmas|ekonomi|bencana|politik","level":"high|medium|low","source":"nama media","summary":"1-2 kalimat analisis ATHG","minsAgo":menit_lalu}]
+
+ID kota valid: bandung, bogor-kota, bekasi-kota, depok, cimahi, sukabumi-kota, tasikmalaya-kota, banjar, cirebon-kota, kab-bandung, kab-bogor, kab-bekasi, kab-karawang, kab-purwakarta, kab-subang, kab-sukabumi, kab-cianjur, kab-garut, kab-tasikmalaya, kab-ciamis, kab-kuningan, kab-cirebon, kab-majalengka, kab-sumedang, kab-indramayu, kab-bandung-barat, kab-pangandaran.
+
+Buat berita beragam, realistis, mencakup berbagai kota dan isu ATHG aktual.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    clearInterval(mt);
+    const raw = data.content.map(i=>i.text||'').join('');
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const items = JSON.parse(clean);
+    const fresh = items.map(i=>({...i, ts: Date.now()-i.minsAgo*60000}));
+    newsData = [...fresh, ...newsData].slice(0,50);
+    cityLevels = calcCityLevels(newsData);
+    buildMap(); renderFeed(); updateStats(); renderSidebar();
+    document.getElementById('last-upd').textContent = 'Diperbarui: ' + new Date().toLocaleTimeString('id-ID');
+  } catch(err) {
+    clearInterval(mt);
+    console.error(err);
+    if (err.message.includes('401')) {
+      document.getElementById('loading-msg').textContent = 'API key tidak valid. Periksa kembali.';
+    } else {
+      document.getElementById('loading-msg').textContent = 'Gagal terhubung: ' + err.message;
+    }
+    setTimeout(()=>{ loadRow.style.display='none'; }, 3000);
+  } finally {
+    clearInterval(mt);
+    loadRow.style.display = 'none';
+    btnCari.disabled = false; btnRef.disabled = false;
+    btnCari.textContent = 'Analisis';
+  }
+}
+
+function startAutoRefresh() {
+  clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(()=>{
+    runSearch();
+  }, 2 * 60 * 1000);
+  document.getElementById('auto-label').textContent = 'Auto-refresh: 2 menit';
+}
+
+// ── CHIP TOGGLE ───────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', ()=>c.classList.toggle('on'));
+});
+
+// ── CLOCK ─────────────────────────────────────────────────────────────
+setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleTimeString('id-ID'); }, 1000);
+
+// ── BOOT ──────────────────────────────────────────────────────────────
+const savedKey = getApiKey();
+if (savedKey) { showMain(savedKey); }
+
+// Enter to start
+document.getElementById('api-input').addEventListener('keydown', e=>{ if(e.key==='Enter') saveApiKey(); });
+</script>
+</body>
+</html>
